@@ -1,7 +1,8 @@
 import { ActionFunctionArgs, json } from '@remix-run/node';
 import { Form, useActionData, useNavigation } from '@remix-run/react';
-import { login, createUserSession } from '~/services/auth.server';
-import { LoginCredentials } from '~/types/auth';
+import { login } from '~/services/user.server';
+import { createUserSession } from '~/utils/auth.server';
+import type { LoginInput } from '~/types/user';
 
 interface ActionData {
 	error?: string;
@@ -21,12 +22,15 @@ export async function action({ request }: ActionFunctionArgs) {
 	}
 
 	try {
-		const credentials: LoginCredentials = { email, password };
-		const { user, token } = await login(credentials);
+		const credentials: LoginInput = { email, password };
+		const { token, user } = await login(credentials);
 		return createUserSession(user.id, token);
 	} catch (error) {
 		return json<ActionData>(
-			{ error: 'Invalid email or password' },
+			{
+				error:
+					error instanceof Error ? error.message : 'Invalid email or password',
+			},
 			{ status: 401 }
 		);
 	}

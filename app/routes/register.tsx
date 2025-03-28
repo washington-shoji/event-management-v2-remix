@@ -1,7 +1,8 @@
 import { ActionFunctionArgs, json } from '@remix-run/node';
 import { Form, useActionData, useNavigation } from '@remix-run/react';
-import { register, createUserSession } from '~/services/auth.server';
-import { RegisterCredentials } from '~/types/auth';
+import { createUser } from '~/services/user.server';
+import { createUserSession } from '~/utils/auth.server';
+import type { CreateUserInput } from '~/types/user';
 
 interface ActionData {
 	error?: string;
@@ -11,8 +12,9 @@ export async function action({ request }: ActionFunctionArgs) {
 	const formData = await request.formData();
 	const email = formData.get('email');
 	const password = formData.get('password');
-	const confirmPassword = formData.get('confirmPassword');
-	const name = formData.get('name');
+	const firstName = formData.get('firstName');
+	const lastName = formData.get('lastName');
+	const phone = formData.get('phone');
 
 	if (!email || typeof email !== 'string') {
 		return json<ActionData>({ error: 'Email is required' }, { status: 400 });
@@ -22,35 +24,40 @@ export async function action({ request }: ActionFunctionArgs) {
 		return json<ActionData>({ error: 'Password is required' }, { status: 400 });
 	}
 
-	if (!confirmPassword || typeof confirmPassword !== 'string') {
+	if (!firstName || typeof firstName !== 'string') {
 		return json<ActionData>(
-			{ error: 'Confirm password is required' },
+			{ error: 'First name is required' },
 			{ status: 400 }
 		);
 	}
 
-	if (!name || typeof name !== 'string') {
-		return json<ActionData>({ error: 'Name is required' }, { status: 400 });
-	}
-
-	if (password !== confirmPassword) {
+	if (!lastName || typeof lastName !== 'string') {
 		return json<ActionData>(
-			{ error: 'Passwords do not match' },
+			{ error: 'Last name is required' },
 			{ status: 400 }
 		);
 	}
 
 	try {
-		const credentials: RegisterCredentials = {
+		const input: CreateUserInput = {
 			email,
-			password,
-			name,
-			confirmPassword,
+			password: String(password),
+			firstName,
+			lastName,
+			phone: phone ? String(phone) : undefined,
+			role: 'user',
 		};
-		const { user, token } = await register(credentials);
-		return createUserSession(user.id, token);
+
+		const user = await createUser(input);
+		return createUserSession(user.id, user.password);
 	} catch (error) {
-		return json<ActionData>({ error: 'Registration failed' }, { status: 400 });
+		return json<ActionData>(
+			{
+				error:
+					error instanceof Error ? error.message : 'Failed to create account',
+			},
+			{ status: 500 }
+		);
 	}
 }
 
@@ -70,16 +77,29 @@ export default function RegisterPage() {
 				<Form method='post' className='mt-8 space-y-6'>
 					<div className='rounded-md shadow-sm -space-y-px'>
 						<div>
-							<label htmlFor='name' className='sr-only'>
-								Full Name
+							<label htmlFor='firstName' className='sr-only'>
+								First Name
 							</label>
 							<input
-								id='name'
-								name='name'
+								id='firstName'
+								name='firstName'
 								type='text'
 								required
 								className='appearance-none rounded-none relative block w-full px-3 py-2 border border-black placeholder-white text-white rounded-t-md focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-sm'
-								placeholder='Full Name'
+								placeholder='First Name'
+							/>
+						</div>
+						<div>
+							<label htmlFor='lastName' className='sr-only'>
+								Last Name
+							</label>
+							<input
+								id='lastName'
+								name='lastName'
+								type='text'
+								required
+								className='appearance-none rounded-none relative block w-full px-3 py-2 border border-black placeholder-white text-white focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-sm'
+								placeholder='Last Name'
 							/>
 						</div>
 						<div>
@@ -96,6 +116,18 @@ export default function RegisterPage() {
 							/>
 						</div>
 						<div>
+							<label htmlFor='phone' className='sr-only'>
+								Phone Number
+							</label>
+							<input
+								id='phone'
+								name='phone'
+								type='tel'
+								className='appearance-none rounded-none relative block w-full px-3 py-2 border border-black placeholder-white text-white focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-sm'
+								placeholder='Phone Number (optional)'
+							/>
+						</div>
+						<div>
 							<label htmlFor='password' className='sr-only'>
 								Password
 							</label>
@@ -104,21 +136,8 @@ export default function RegisterPage() {
 								name='password'
 								type='password'
 								required
-								className='appearance-none rounded-none relative block w-full px-3 py-2 border border-black placeholder-white text-white focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-sm'
-								placeholder='Password'
-							/>
-						</div>
-						<div>
-							<label htmlFor='confirmPassword' className='sr-only'>
-								Confirm Password
-							</label>
-							<input
-								id='confirmPassword'
-								name='confirmPassword'
-								type='password'
-								required
 								className='appearance-none rounded-none relative block w-full px-3 py-2 border border-black placeholder-white text-white rounded-b-md focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-sm'
-								placeholder='Confirm Password'
+								placeholder='Password'
 							/>
 						</div>
 					</div>
