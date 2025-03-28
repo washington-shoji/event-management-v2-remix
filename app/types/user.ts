@@ -10,8 +10,9 @@ export interface User {
 	role: UserRole;
 	organizationId?: string | null;
 	addressId?: string | null;
-	createdAt: Date;
-	updatedAt: Date;
+	avatar?: string;
+	createdAt: string | Date;
+	updatedAt: string | Date;
 }
 
 export interface UserResponse {

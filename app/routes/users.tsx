@@ -96,7 +96,7 @@ export default function UsersPage() {
 												<select
 													name='role'
 													defaultValue={user.role}
-													className='mt-1 block w-full border border-black rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-black focus:border-black sm:text-sm'
+													className='mt-1 block w-full border text-white border-black rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-black focus:border-black sm:text-sm'
 												>
 													<option value='user'>User</option>
 													<option value='admin'>Admin</option>
