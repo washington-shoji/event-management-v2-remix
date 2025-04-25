@@ -3,6 +3,22 @@ import { Form, useActionData, useNavigation } from '@remix-run/react';
 import { requireAuth } from '~/utils/auth.server';
 import { UserRole, OrganizationStatus } from '~/types/organization';
 
+interface ActionData {
+	errors?: {
+		name?: string;
+		description?: string;
+		type?: string;
+		street?: string;
+		city?: string;
+		state?: string;
+		zipCode?: string;
+		country?: string;
+		capacity?: string;
+		amenities?: string;
+		status?: string;
+	};
+}
+
 export async function action({ request }: ActionFunctionArgs) {
 	await requireAuth(request);
 	const formData = await request.formData();
@@ -16,12 +32,14 @@ export async function action({ request }: ActionFunctionArgs) {
 	const zipCode = formData.get('zipCode');
 	const country = formData.get('country');
 
-	if (!name || typeof name !== 'string') {
-		return Response.json({ error: 'Name is required' }, { status: 400 });
+	const errors: ActionData['errors'] = {};
+
+	if (!name) {
+		errors.name = 'Name is required';
 	}
 
-	if (!description || typeof description !== 'string') {
-		return Response.json({ error: 'Description is required' }, { status: 400 });
+	if (!description) {
+		errors.description = 'Description is required';
 	}
 
 	if (
@@ -29,7 +47,7 @@ export async function action({ request }: ActionFunctionArgs) {
 		typeof type !== 'string' ||
 		!Object.values(UserRole).includes(type as UserRole)
 	) {
-		return Response.json({ error: 'Valid type is required' }, { status: 400 });
+		errors.type = 'Valid type is required';
 	}
 
 	if (
@@ -37,30 +55,31 @@ export async function action({ request }: ActionFunctionArgs) {
 		typeof status !== 'string' ||
 		!Object.values(OrganizationStatus).includes(status as OrganizationStatus)
 	) {
-		return Response.json(
-			{ error: 'Valid status is required' },
-			{ status: 400 }
-		);
+		errors.status = 'Valid status is required';
 	}
 
 	if (!street) {
-		return Response.json({ error: 'Street is required' }, { status: 400 });
+		errors.street = 'Street is required';
 	}
 
 	if (!city) {
-		return Response.json({ error: 'City is required' }, { status: 400 });
+		errors.city = 'City is required';
 	}
 
 	if (!state) {
-		return Response.json({ error: 'State is required' }, { status: 400 });
+		errors.state = 'State is required';
 	}
 
 	if (!zipCode) {
-		return Response.json({ error: 'ZIP code is required' }, { status: 400 });
+		errors.zipCode = 'ZIP code is required';
 	}
 
 	if (!country) {
-		return Response.json({ error: 'Country is required' }, { status: 400 });
+		errors.country = 'Country is required';
+	}
+
+	if (Object.keys(errors).length > 0) {
+		return Response.json({ errors }, { status: 400 });
 	}
 
 	try {
@@ -68,7 +87,7 @@ export async function action({ request }: ActionFunctionArgs) {
 		return redirect('/organizations');
 	} catch (error) {
 		return Response.json(
-			{ error: 'Failed to create organization' },
+			{ errors: { name: 'Failed to create organization' } },
 			{ status: 500 }
 		);
 	}

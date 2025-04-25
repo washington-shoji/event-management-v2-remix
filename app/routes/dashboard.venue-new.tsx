@@ -30,7 +30,6 @@ export async function action({ request }: ActionFunctionArgs) {
 	const zipCode = formData.get('zipCode');
 	const country = formData.get('country');
 	const capacity = formData.get('capacity');
-	const amenities = formData.get('amenities');
 	const status = formData.get('status');
 
 	const errors: ActionData['errors'] = {};
@@ -69,10 +68,6 @@ export async function action({ request }: ActionFunctionArgs) {
 		errors.capacity = 'Capacity must be a number';
 	}
 
-	if (!amenities) {
-		errors.amenities = 'Amenities are required';
-	}
-
 	if (!status) {
 		errors.status = 'Status is required';
 	}
@@ -83,7 +78,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
 	try {
 		// TODO: Create venue via API
-		return redirect('/venues');
+		return redirect('/dashboard/venues');
 	} catch (error) {
 		return Response.json(
 			{ errors: { name: 'Failed to create venue' } },
