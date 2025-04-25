@@ -1,14 +1,20 @@
-import { json, ActionFunctionArgs, redirect } from '@remix-run/node';
+import { ActionFunctionArgs, redirect } from '@remix-run/node';
 import { Form, useActionData, useNavigation } from '@remix-run/react';
 import { requireAuth } from '~/utils/auth.server';
+import { VenueStatus } from '~/types/venue';
 
 interface ActionData {
 	errors?: {
 		name?: string;
 		description?: string;
-		address?: string;
+		street?: string;
+		city?: string;
+		state?: string;
+		zipCode?: string;
+		country?: string;
 		capacity?: string;
 		amenities?: string;
+		status?: string;
 	};
 }
 
@@ -18,9 +24,14 @@ export async function action({ request }: ActionFunctionArgs) {
 	const formData = await request.formData();
 	const name = formData.get('name');
 	const description = formData.get('description');
-	const address = formData.get('address');
+	const street = formData.get('street');
+	const city = formData.get('city');
+	const state = formData.get('state');
+	const zipCode = formData.get('zipCode');
+	const country = formData.get('country');
 	const capacity = formData.get('capacity');
 	const amenities = formData.get('amenities');
+	const status = formData.get('status');
 
 	const errors: ActionData['errors'] = {};
 
@@ -32,8 +43,24 @@ export async function action({ request }: ActionFunctionArgs) {
 		errors.description = 'Description is required';
 	}
 
-	if (!address) {
-		errors.address = 'Address is required';
+	if (!street) {
+		errors.street = 'Street is required';
+	}
+
+	if (!city) {
+		errors.city = 'City is required';
+	}
+
+	if (!state) {
+		errors.state = 'State is required';
+	}
+
+	if (!zipCode) {
+		errors.zipCode = 'ZIP code is required';
+	}
+
+	if (!country) {
+		errors.country = 'Country is required';
 	}
 
 	if (!capacity) {
@@ -46,15 +73,19 @@ export async function action({ request }: ActionFunctionArgs) {
 		errors.amenities = 'Amenities are required';
 	}
 
+	if (!status) {
+		errors.status = 'Status is required';
+	}
+
 	if (Object.keys(errors).length > 0) {
-		return json<ActionData>({ errors }, { status: 400 });
+		return Response.json({ errors }, { status: 400 });
 	}
 
 	try {
 		// TODO: Create venue via API
 		return redirect('/venues');
 	} catch (error) {
-		return json<ActionData>(
+		return Response.json(
 			{ errors: { name: 'Failed to create venue' } },
 			{ status: 500 }
 		);
@@ -77,61 +108,42 @@ export default function NewVenuePage() {
 			</div>
 
 			<Form method='post' className='mt-8 space-y-6'>
-				<div className='rounded-md shadow-sm -space-y-px'>
-					<div>
-						<label htmlFor='name' className='sr-only'>
-							Name
-						</label>
-						<input
-							id='name'
-							name='name'
-							type='text'
-							required
-							className='appearance-none rounded-none relative block w-full px-3 py-2 border border-black placeholder-white text-white rounded-t-md focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-sm'
-							placeholder='Venue Name'
-						/>
-						{actionData?.errors?.name && (
-							<p className='mt-1 text-sm text-black'>
-								{actionData.errors.name}
-							</p>
-						)}
-					</div>
-					<div>
-						<label htmlFor='description' className='sr-only'>
-							Description
-						</label>
-						<textarea
-							id='description'
-							name='description'
-							required
-							rows={3}
-							className='appearance-none rounded-none relative block w-full px-3 py-2 border border-black placeholder-white text-white focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-sm'
-							placeholder='Venue Description'
-						/>
-						{actionData?.errors?.description && (
-							<p className='mt-1 text-sm text-black'>
-								{actionData.errors.description}
-							</p>
-						)}
-					</div>
-					<div>
-						<label htmlFor='address' className='sr-only'>
-							Address
-						</label>
-						<input
-							id='address'
-							name='address'
-							type='text'
-							required
-							className='appearance-none rounded-none relative block w-full px-3 py-2 border border-black placeholder-white text-white focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-sm'
-							placeholder='Venue Address'
-						/>
-						{actionData?.errors?.address && (
-							<p className='mt-1 text-sm text-black'>
-								{actionData.errors.address}
-							</p>
-						)}
-					</div>
+				<div>
+					<label htmlFor='name' className='sr-only'>
+						Name
+					</label>
+					<input
+						id='name'
+						name='name'
+						type='text'
+						required
+						placeholder='Venue Name'
+						className='appearance-none relative block w-full px-3 py-2 border border-black placeholder-white text-white rounded focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-md'
+					/>
+					{actionData?.errors?.name && (
+						<p className='mt-1 text-sm text-black'>{actionData.errors.name}</p>
+					)}
+				</div>
+				<div>
+					<label htmlFor='description' className='sr-only'>
+						Description
+					</label>
+					<textarea
+						id='description'
+						name='description'
+						required
+						rows={3}
+						placeholder='Venue Description'
+						className='appearance-none relative block w-full px-3 py-2 border border-black placeholder-white text-white rounded focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-md'
+					/>
+					{actionData?.errors?.description && (
+						<p className='mt-1 text-sm text-black'>
+							{actionData.errors.description}
+						</p>
+					)}
+				</div>
+
+				<div className='grid grid-cols-2 gap-4'>
 					<div>
 						<label htmlFor='capacity' className='sr-only'>
 							Capacity
@@ -141,8 +153,8 @@ export default function NewVenuePage() {
 							name='capacity'
 							type='number'
 							required
-							className='appearance-none rounded-none relative block w-full px-3 py-2 border border-black placeholder-white text-white focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-sm'
 							placeholder='Venue Capacity'
+							className='appearance-none relative block w-full px-3 py-2 border border-black placeholder-white text-white rounded focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-md'
 						/>
 						{actionData?.errors?.capacity && (
 							<p className='mt-1 text-sm text-black'>
@@ -150,31 +162,140 @@ export default function NewVenuePage() {
 							</p>
 						)}
 					</div>
+
 					<div>
-						<label htmlFor='amenities' className='sr-only'>
-							Amenities
+						<label htmlFor='status' className='sr-only'>
+							Status
 						</label>
-						<input
-							id='amenities'
-							name='amenities'
-							type='text'
+						<select
+							id='status'
+							name='status'
 							required
-							className='appearance-none rounded-none relative block w-full px-3 py-2 border border-black placeholder-black text-black rounded-b-md focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-sm'
-							placeholder='Amenities (comma-separated)'
-						/>
-						{actionData?.errors?.amenities && (
+							className='appearance-none relative block w-full px-3 py-2 border border-black placeholder-white text-white rounded focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-md'
+						>
+							<option value=''>Select Status</option>
+							{Object.values(VenueStatus).map((status) => (
+								<option key={status} value={status}>
+									{status.charAt(0).toUpperCase() + status.slice(1)}
+								</option>
+							))}
+						</select>
+						{actionData?.errors?.status && (
 							<p className='mt-1 text-sm text-black'>
-								{actionData.errors.amenities}
+								{actionData.errors.status}
 							</p>
 						)}
 					</div>
 				</div>
 
-				<div>
+				<div className='grid grid-cols-2 gap-4'>
+					<div>
+						<label htmlFor='street' className='sr-only'>
+							Street
+						</label>
+						<input
+							id='street'
+							name='street'
+							type='text'
+							required
+							placeholder='Street Address'
+							className='appearance-none relative block w-full px-3 py-2 border border-black placeholder-white text-white rounded focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-md'
+						/>
+						{actionData?.errors?.street && (
+							<p className='mt-1 text-sm text-black'>
+								{actionData.errors.street}
+							</p>
+						)}
+					</div>
+					<div>
+						<label htmlFor='city' className='sr-only'>
+							City
+						</label>
+						<input
+							id='city'
+							name='city'
+							type='text'
+							required
+							placeholder='City'
+							className='appearance-none relative block w-full px-3 py-2 border border-black placeholder-white text-white rounded focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-md'
+						/>
+						{actionData?.errors?.city && (
+							<p className='mt-1 text-sm text-black'>
+								{actionData.errors.city}
+							</p>
+						)}
+					</div>
+				</div>
+
+				<div className='grid grid-cols-3 gap-4'>
+					<div>
+						<label htmlFor='state' className='sr-only'>
+							State
+						</label>
+						<input
+							id='state'
+							name='state'
+							type='text'
+							required
+							placeholder='State'
+							className='appearance-none relative block w-full px-3 py-2 border border-black placeholder-white text-white rounded focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-md'
+						/>
+						{actionData?.errors?.state && (
+							<p className='mt-1 text-sm text-black'>
+								{actionData.errors.state}
+							</p>
+						)}
+					</div>
+					<div>
+						<label htmlFor='zipCode' className='sr-only'>
+							ZIP Code
+						</label>
+						<input
+							id='zipCode'
+							name='zipCode'
+							type='text'
+							required
+							placeholder='ZIP Code'
+							className='appearance-none relative block w-full px-3 py-2 border border-black placeholder-white text-white rounded focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-md'
+						/>
+						{actionData?.errors?.zipCode && (
+							<p className='mt-1 text-sm text-black'>
+								{actionData.errors.zipCode}
+							</p>
+						)}
+					</div>
+					<div>
+						<label htmlFor='country' className='sr-only'>
+							Country
+						</label>
+						<input
+							id='country'
+							name='country'
+							type='text'
+							required
+							placeholder='Country'
+							className='appearance-none relative block w-full px-3 py-2 border border-black placeholder-white text-white rounded focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-md'
+						/>
+						{actionData?.errors?.country && (
+							<p className='mt-1 text-sm text-black'>
+								{actionData.errors.country}
+							</p>
+						)}
+					</div>
+				</div>
+
+				<div className='flex justify-end space-x-4'>
+					<button
+						type='button'
+						onClick={() => window.history.back()}
+						className='inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50'
+					>
+						Cancel
+					</button>
 					<button
 						type='submit'
 						disabled={isSubmitting}
-						className='group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-black hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black'
+						className='group relative flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-black hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black'
 					>
 						{isSubmitting ? 'Creating...' : 'Create Venue'}
 					</button>

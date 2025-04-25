@@ -54,7 +54,7 @@ export default function EventsPage() {
 				<h1 className='text-2xl font-bold text-gray-900'>Events</h1>
 				<Link
 					to='/dashboard/event-new'
-					className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700'
+					className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-black hover:bg-black'
 				>
 					Create Event
 				</Link>

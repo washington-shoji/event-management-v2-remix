@@ -1,48 +1,73 @@
-import { json, ActionFunctionArgs, redirect } from '@remix-run/node';
+import { ActionFunctionArgs, redirect } from '@remix-run/node';
 import { Form, useActionData, useNavigation } from '@remix-run/react';
 import { requireAuth } from '~/utils/auth.server';
-
-interface ActionData {
-	error?: string;
-}
+import { UserRole, OrganizationStatus } from '~/types/organization';
 
 export async function action({ request }: ActionFunctionArgs) {
 	await requireAuth(request);
 	const formData = await request.formData();
 	const name = formData.get('name');
 	const description = formData.get('description');
-	const email = formData.get('email');
-	const phone = formData.get('phone');
-	const website = formData.get('website');
+	const type = formData.get('type');
+	const status = formData.get('status');
+	const street = formData.get('street');
+	const city = formData.get('city');
+	const state = formData.get('state');
+	const zipCode = formData.get('zipCode');
+	const country = formData.get('country');
 
 	if (!name || typeof name !== 'string') {
-		return json<ActionData>({ error: 'Name is required' }, { status: 400 });
+		return Response.json({ error: 'Name is required' }, { status: 400 });
 	}
 
 	if (!description || typeof description !== 'string') {
-		return json<ActionData>(
-			{ error: 'Description is required' },
+		return Response.json({ error: 'Description is required' }, { status: 400 });
+	}
+
+	if (
+		!type ||
+		typeof type !== 'string' ||
+		!Object.values(UserRole).includes(type as UserRole)
+	) {
+		return Response.json({ error: 'Valid type is required' }, { status: 400 });
+	}
+
+	if (
+		!status ||
+		typeof status !== 'string' ||
+		!Object.values(OrganizationStatus).includes(status as OrganizationStatus)
+	) {
+		return Response.json(
+			{ error: 'Valid status is required' },
 			{ status: 400 }
 		);
 	}
 
-	if (!email || typeof email !== 'string') {
-		return json<ActionData>({ error: 'Email is required' }, { status: 400 });
+	if (!street) {
+		return Response.json({ error: 'Street is required' }, { status: 400 });
 	}
 
-	if (!phone || typeof phone !== 'string') {
-		return json<ActionData>({ error: 'Phone is required' }, { status: 400 });
+	if (!city) {
+		return Response.json({ error: 'City is required' }, { status: 400 });
 	}
 
-	if (!website || typeof website !== 'string') {
-		return json<ActionData>({ error: 'Website is required' }, { status: 400 });
+	if (!state) {
+		return Response.json({ error: 'State is required' }, { status: 400 });
+	}
+
+	if (!zipCode) {
+		return Response.json({ error: 'ZIP code is required' }, { status: 400 });
+	}
+
+	if (!country) {
+		return Response.json({ error: 'Country is required' }, { status: 400 });
 	}
 
 	try {
 		// TODO: Create organization in API
 		return redirect('/organizations');
 	} catch (error) {
-		return json<ActionData>(
+		return Response.json(
 			{ error: 'Failed to create organization' },
 			{ status: 500 }
 		);
@@ -55,90 +80,148 @@ export default function NewOrganizationPage() {
 	const isSubmitting = navigation.state === 'submitting';
 
 	return (
-		<div className='max-w-2xl mx-auto'>
-			<h1 className='text-2xl font-bold text-gray-900 mb-6'>
-				Create New Organization
-			</h1>
+		<div className='max-w-2xl mx-auto py-10 px-4 sm:px-6 lg:px-8'>
+			<div className='md:flex md:items-center md:justify-between'>
+				<div className='flex-1 min-w-0'>
+					<h2 className='text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate'>
+						Create New Organization
+					</h2>
+				</div>
+			</div>
 
-			<Form method='post' className='space-y-6'>
+			<Form method='post' className='mt-8 space-y-6'>
 				<div>
-					<label
-						htmlFor='name'
-						className='block text-sm font-medium text-gray-700'
-					>
+					<label htmlFor='name' className='sr-only'>
 						Name
 					</label>
 					<input
-						type='text'
-						name='name'
 						id='name'
+						name='name'
+						type='text'
 						required
-						className='mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
+						placeholder='Organization Name'
+						className='appearance-none relative block w-full px-3 py-2 border border-black placeholder-white text-white rounded focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-md'
 					/>
 				</div>
 
 				<div>
-					<label
-						htmlFor='description'
-						className='block text-sm font-medium text-gray-700'
-					>
+					<label htmlFor='description' className='sr-only'>
 						Description
 					</label>
 					<textarea
-						name='description'
 						id='description'
-						rows={4}
+						name='description'
 						required
-						className='mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
+						rows={3}
+						placeholder='Organization Description'
+						className='appearance-none relative block w-full px-3 py-2 border border-black placeholder-white text-white rounded focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-md'
 					/>
 				</div>
 
-				<div>
-					<label
-						htmlFor='email'
-						className='block text-sm font-medium text-gray-700'
-					>
-						Email
-					</label>
-					<input
-						type='email'
-						name='email'
-						id='email'
-						required
-						className='mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
-					/>
+				<div className='grid grid-cols-2 gap-4'>
+					<div>
+						<label htmlFor='type' className='sr-only'>
+							Type
+						</label>
+						<select
+							id='type'
+							name='type'
+							required
+							className='appearance-none relative block w-full px-3 py-2 border border-black placeholder-white text-white rounded focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-md'
+						>
+							<option value=''>Select Type</option>
+							{Object.values(UserRole).map((role) => (
+								<option key={role} value={role}>
+									{role.charAt(0).toUpperCase() + role.slice(1)}
+								</option>
+							))}
+						</select>
+					</div>
+
+					<div>
+						<label htmlFor='status' className='sr-only'>
+							Status
+						</label>
+						<select
+							id='status'
+							name='status'
+							required
+							className='appearance-none relative block w-full px-3 py-2 border border-black placeholder-white text-white rounded focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-md'
+						>
+							<option value=''>Select Status</option>
+							{Object.values(OrganizationStatus).map((orgStatus) => (
+								<option key={orgStatus} value={orgStatus}>
+									{orgStatus.charAt(0).toUpperCase() + orgStatus.slice(1)}
+								</option>
+							))}
+						</select>
+					</div>
 				</div>
 
-				<div>
-					<label
-						htmlFor='phone'
-						className='block text-sm font-medium text-gray-700'
-					>
-						Phone
-					</label>
-					<input
-						type='tel'
-						name='phone'
-						id='phone'
-						required
-						className='mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
-					/>
+				<div className='grid grid-cols-2 gap-4'>
+					<div>
+						<label htmlFor='street' className='sr-only'>
+							Street
+						</label>
+						<input
+							id='street'
+							name='street'
+							type='text'
+							placeholder='Street Address'
+							className='appearance-none relative block w-full px-3 py-2 border border-black placeholder-white text-white rounded focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-md'
+						/>
+					</div>
+					<div>
+						<label htmlFor='city' className='sr-only'>
+							City
+						</label>
+						<input
+							id='city'
+							name='city'
+							type='text'
+							placeholder='City'
+							className='appearance-none relative block w-full px-3 py-2 border border-black placeholder-white text-white rounded focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-md'
+						/>
+					</div>
 				</div>
 
-				<div>
-					<label
-						htmlFor='website'
-						className='block text-sm font-medium text-gray-700'
-					>
-						Website
-					</label>
-					<input
-						type='url'
-						name='website'
-						id='website'
-						required
-						className='mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
-					/>
+				<div className='grid grid-cols-3 gap-4'>
+					<div>
+						<label htmlFor='state' className='sr-only'>
+							State
+						</label>
+						<input
+							id='state'
+							name='state'
+							type='text'
+							placeholder='State'
+							className='appearance-none relative block w-full px-3 py-2 border border-black placeholder-white text-white rounded focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-md'
+						/>
+					</div>
+					<div>
+						<label htmlFor='zipCode' className='sr-only'>
+							ZIP Code
+						</label>
+						<input
+							id='zipCode'
+							name='zipCode'
+							type='text'
+							placeholder='ZIP Code'
+							className='appearance-none relative block w-full px-3 py-2 border border-black placeholder-white text-white rounded focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-md'
+						/>
+					</div>
+					<div>
+						<label htmlFor='country' className='sr-only'>
+							Country
+						</label>
+						<input
+							id='country'
+							name='country'
+							type='text'
+							placeholder='Country'
+							className='appearance-none relative block w-full px-3 py-2 border border-black placeholder-white text-white rounded focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-md'
+						/>
+					</div>
 				</div>
 
 				{actionData?.error && (
@@ -156,7 +239,7 @@ export default function NewOrganizationPage() {
 					<button
 						type='submit'
 						disabled={isSubmitting}
-						className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
+						className='group relative flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-black hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black'
 					>
 						{isSubmitting ? 'Creating...' : 'Create Organization'}
 					</button>

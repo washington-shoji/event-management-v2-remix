@@ -77,7 +77,7 @@ export default function VenuesPage() {
 							<div className='mt-4'>
 								<Link
 									to={`/dashboard/venue/${venue.id}`}
-									className='text-black hover:text-black'
+									className='text-indigo-600 hover:text-indigo-900'
 								>
 									View Details →
 								</Link>

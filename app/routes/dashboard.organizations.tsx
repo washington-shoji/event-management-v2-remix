@@ -1,5 +1,9 @@
 import { useLoaderData, Link } from '@remix-run/react';
-import { Organization } from '~/types/organization';
+import {
+	Organization,
+	OrganizationStatus,
+	UserRole,
+} from '~/types/organization';
 import { requireAuth } from '~/utils/auth.server';
 
 export async function loader({ request }: { request: Request }) {
@@ -11,17 +15,19 @@ export async function loader({ request }: { request: Request }) {
 			id: '1',
 			name: 'Sample Organization 1',
 			description: 'This is a sample organization description',
-			email: 'contact@org1.com',
-			phone: '(555) 123-4567',
-			website: 'https://org1.com',
+			type: UserRole.ADMIN,
+			status: OrganizationStatus.ACTIVE,
+			createdAt: new Date('2021-01-01'),
+			updatedAt: new Date('2021-01-01'),
 		},
 		{
 			id: '2',
 			name: 'Sample Organization 2',
 			description: 'This is another sample organization description',
-			email: 'contact@org2.com',
-			phone: '(555) 987-6543',
-			website: 'https://org2.com',
+			type: UserRole.ADMIN,
+			status: OrganizationStatus.ACTIVE,
+			createdAt: new Date('2021-01-01'),
+			updatedAt: new Date('2021-01-01'),
 		},
 	];
 
@@ -37,7 +43,7 @@ export default function OrganizationsPage() {
 				<h1 className='text-2xl font-bold text-gray-900'>Organizations</h1>
 				<Link
 					to='/dashboard/organization-new'
-					className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700'
+					className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-black hover:bg-black'
 				>
 					Create Organization
 				</Link>
@@ -58,33 +64,11 @@ export default function OrganizationsPage() {
 							</p>
 							<div className='mt-4'>
 								<p className='text-sm text-gray-500'>
-									<span className='font-medium'>Email:</span>{' '}
-									<a
-										href={`mailto:${organization.email}`}
-										className='text-indigo-600 hover:text-indigo-900'
-									>
-										{organization.email}
-									</a>
+									<span className='font-medium'>Type:</span> {organization.type}
 								</p>
 								<p className='text-sm text-gray-500'>
-									<span className='font-medium'>Phone:</span>{' '}
-									<a
-										href={`tel:${organization.phone}`}
-										className='text-indigo-600 hover:text-indigo-900'
-									>
-										{organization.phone}
-									</a>
-								</p>
-								<p className='text-sm text-gray-500'>
-									<span className='font-medium'>Website:</span>{' '}
-									<a
-										href={organization.website}
-										target='_blank'
-										rel='noopener noreferrer'
-										className='text-indigo-600 hover:text-indigo-900'
-									>
-										{organization.website}
-									</a>
+									<span className='font-medium'>Status:</span>{' '}
+									{organization.status}
 								</p>
 							</div>
 							<div className='mt-4'>
