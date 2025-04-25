@@ -1,22 +1,12 @@
-import { json } from '@remix-run/node';
 import { useLoaderData, useSearchParams, Link } from '@remix-run/react';
 import { requireAuth } from '~/utils/auth.server';
-
-interface Event {
-	id: string;
-	title: string;
-	description: string;
-	date: string;
-	venue: string;
-	organization: string;
-	status: string;
-}
+import { ApiEvent } from '~/types/event';
 
 export async function loader({ request }: { request: Request }) {
 	await requireAuth(request);
 
 	// TODO: Fetch events from API with pagination and filters
-	const events: Event[] = [
+	const events: ApiEvent[] = [
 		{
 			id: '1',
 			title: 'Sample Event 1',
@@ -46,7 +36,7 @@ export async function loader({ request }: { request: Request }) {
 		},
 	];
 
-	return json({ events });
+	return Response.json({ events });
 }
 
 export default function EventsPage() {
@@ -55,7 +45,7 @@ export default function EventsPage() {
 	const status = searchParams.get('status');
 
 	const filteredEvents = status
-		? events.filter((event) => event.status === status)
+		? events.filter((event: ApiEvent) => event.status === status)
 		: events;
 
 	return (
@@ -63,7 +53,7 @@ export default function EventsPage() {
 			<div className='flex justify-between items-center'>
 				<h1 className='text-2xl font-bold text-gray-900'>Events</h1>
 				<Link
-					to='/events/new'
+					to='/dashboard/event-new'
 					className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700'
 				>
 					Create Event
@@ -104,7 +94,7 @@ export default function EventsPage() {
 			</div>
 
 			<div className='grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3'>
-				{filteredEvents.map((event) => (
+				{filteredEvents.map((event: ApiEvent) => (
 					<div
 						key={event.id}
 						className='bg-white overflow-hidden shadow rounded-lg'
@@ -140,7 +130,7 @@ export default function EventsPage() {
 							</div>
 							<div className='mt-4'>
 								<Link
-									to={`/events/${event.id}`}
+									to={`/dashboard/event/${event.id}`}
 									className='text-indigo-600 hover:text-indigo-900'
 								>
 									View Details →

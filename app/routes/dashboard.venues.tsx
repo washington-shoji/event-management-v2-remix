@@ -45,7 +45,7 @@ export default function VenuesPage() {
 			<div className='flex justify-between items-center'>
 				<h1 className='text-2xl font-bold text-black'>Venues</h1>
 				<Link
-					to='/venues/new'
+					to='/dashboard/venue-new'
 					className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-black hover:bg-black'
 				>
 					Create Venue
@@ -76,7 +76,7 @@ export default function VenuesPage() {
 							</div>
 							<div className='mt-4'>
 								<Link
-									to={`/venues/${venue.id}`}
+									to={`/dashboard/venue/${venue.id}`}
 									className='text-black hover:text-black'
 								>
 									View Details →

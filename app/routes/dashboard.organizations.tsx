@@ -1,15 +1,6 @@
-import { json } from '@remix-run/node';
 import { useLoaderData, Link } from '@remix-run/react';
+import { Organization } from '~/types/organization';
 import { requireAuth } from '~/utils/auth.server';
-
-interface Organization {
-	id: string;
-	name: string;
-	description: string;
-	email: string;
-	phone: string;
-	website: string;
-}
 
 export async function loader({ request }: { request: Request }) {
 	await requireAuth(request);
@@ -34,7 +25,7 @@ export async function loader({ request }: { request: Request }) {
 		},
 	];
 
-	return json({ organizations });
+	return Response.json({ organizations });
 }
 
 export default function OrganizationsPage() {
@@ -45,7 +36,7 @@ export default function OrganizationsPage() {
 			<div className='flex justify-between items-center'>
 				<h1 className='text-2xl font-bold text-gray-900'>Organizations</h1>
 				<Link
-					to='/organizations/new'
+					to='/dashboard/organization-new'
 					className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700'
 				>
 					Create Organization
@@ -53,7 +44,7 @@ export default function OrganizationsPage() {
 			</div>
 
 			<div className='grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3'>
-				{organizations.map((organization) => (
+				{organizations.map((organization: Organization) => (
 					<div
 						key={organization.id}
 						className='bg-white overflow-hidden shadow rounded-lg'
@@ -98,7 +89,7 @@ export default function OrganizationsPage() {
 							</div>
 							<div className='mt-4'>
 								<Link
-									to={`/organizations/${organization.id}`}
+									to={`/dashboard/organization/${organization.id}`}
 									className='text-indigo-600 hover:text-indigo-900'
 								>
 									View Details →

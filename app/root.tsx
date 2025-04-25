@@ -1,7 +1,5 @@
-import { json } from '@remix-run/node';
 import {
 	Links,
-	LiveReload,
 	Meta,
 	Outlet,
 	Scripts,
@@ -9,17 +7,19 @@ import {
 	useLoaderData,
 } from '@remix-run/react';
 import Layout from '~/components/Layout';
+import DashboardLayout from '~/components/DashboardLayout';
 import { getUserSession } from '~/services/auth.server';
 import './tailwind.css';
 
 export async function loader({ request }: { request: Request }) {
 	const session = await getUserSession(request);
 	const userId = session.get('userId');
-	return json({ isAuthenticated: !!userId });
+	const user = session.get('user');
+	return Response.json({ isAuthenticated: !!userId, user });
 }
 
 export default function App() {
-	const { isAuthenticated } = useLoaderData<typeof loader>();
+	const { isAuthenticated, user } = useLoaderData<typeof loader>();
 
 	return (
 		<html lang='en' className='bg-white'>
@@ -30,12 +30,17 @@ export default function App() {
 				<Links />
 			</head>
 			<body className='bg-white text-black'>
-				<Layout isAuthenticated={isAuthenticated}>
-					<Outlet />
-				</Layout>
+				{isAuthenticated ? (
+					<DashboardLayout isAuthenticated={isAuthenticated} user={user}>
+						<Outlet />
+					</DashboardLayout>
+				) : (
+					<Layout>
+						<Outlet />
+					</Layout>
+				)}
 				<ScrollRestoration />
 				<Scripts />
-				<LiveReload />
 			</body>
 		</html>
 	);

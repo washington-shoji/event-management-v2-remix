@@ -1,4 +1,4 @@
-import { json, ActionFunctionArgs } from '@remix-run/node';
+import { ActionFunctionArgs } from '@remix-run/node';
 import { useLoaderData, Form, Link } from '@remix-run/react';
 import { requireAuth } from '~/utils/auth.server';
 
@@ -54,20 +54,20 @@ export async function loader({
 		],
 	};
 
-	return json({ event });
+	return Response.json({ event });
 }
 
-export async function action({ request, params }: ActionFunctionArgs) {
+export async function action({ request }: ActionFunctionArgs) {
 	await requireAuth(request);
 	const formData = await request.formData();
 	const intent = formData.get('intent');
 
 	if (intent === 'delete') {
 		// TODO: Delete event from API
-		return json({ success: true });
+		return Response.json({ success: true });
 	}
 
-	return json({ success: false });
+	return Response.json({ success: false });
 }
 
 export default function EventDetailPage() {
@@ -79,7 +79,7 @@ export default function EventDetailPage() {
 				<h1 className='text-2xl font-bold text-gray-900'>{event.title}</h1>
 				<div className='flex space-x-4'>
 					<Link
-						to={`/events/${event.id}/edit`}
+						to={`/dashboard/event-edit/${event.id}`}
 						className='inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50'
 					>
 						Edit Event
@@ -156,7 +156,7 @@ export default function EventDetailPage() {
 				</div>
 				<div className='border-t border-gray-200'>
 					<ul className='divide-y divide-gray-200'>
-						{event.tickets.map((ticket) => (
+						{event.tickets.map((ticket: Ticket) => (
 							<li key={ticket.id} className='px-4 py-4 sm:px-6'>
 								<div className='flex items-center justify-between'>
 									<div>

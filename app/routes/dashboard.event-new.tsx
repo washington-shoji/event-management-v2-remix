@@ -1,10 +1,6 @@
-import { json, ActionFunctionArgs, redirect } from '@remix-run/node';
+import { ActionFunctionArgs, redirect } from '@remix-run/node';
 import { Form, useActionData, useNavigation } from '@remix-run/react';
 import { requireAuth } from '~/utils/auth.server';
-
-interface ActionData {
-	error?: string;
-}
 
 export async function action({ request }: ActionFunctionArgs) {
 	await requireAuth(request);
@@ -16,26 +12,23 @@ export async function action({ request }: ActionFunctionArgs) {
 	const organization = formData.get('organization');
 
 	if (!title || typeof title !== 'string') {
-		return json<ActionData>({ error: 'Title is required' }, { status: 400 });
+		return Response.json({ error: 'Title is required' }, { status: 400 });
 	}
 
 	if (!description || typeof description !== 'string') {
-		return json<ActionData>(
-			{ error: 'Description is required' },
-			{ status: 400 }
-		);
+		return Response.json({ error: 'Description is required' }, { status: 400 });
 	}
 
 	if (!date || typeof date !== 'string') {
-		return json<ActionData>({ error: 'Date is required' }, { status: 400 });
+		return Response.json({ error: 'Date is required' }, { status: 400 });
 	}
 
 	if (!venue || typeof venue !== 'string') {
-		return json<ActionData>({ error: 'Venue is required' }, { status: 400 });
+		return Response.json({ error: 'Venue is required' }, { status: 400 });
 	}
 
 	if (!organization || typeof organization !== 'string') {
-		return json<ActionData>(
+		return Response.json(
 			{ error: 'Organization is required' },
 			{ status: 400 }
 		);
@@ -43,12 +36,17 @@ export async function action({ request }: ActionFunctionArgs) {
 
 	try {
 		// TODO: Create event in API
-		return redirect('/events');
+		console.warn('Creating event:', {
+			title,
+			description,
+			date,
+			venue,
+			organization,
+		});
+
+		return redirect('/dashboard/events');
 	} catch (error) {
-		return json<ActionData>(
-			{ error: 'Failed to create event' },
-			{ status: 500 }
-		);
+		return Response.json({ error: 'Failed to create event' }, { status: 500 });
 	}
 }
 
@@ -76,7 +74,7 @@ export default function NewEventPage() {
 						name='title'
 						id='title'
 						required
-						className='mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
+						className='appearance-none relative block w-full px-3 py-2 border border-black placeholder-white text-white rounded focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-md'
 					/>
 				</div>
 
@@ -92,7 +90,7 @@ export default function NewEventPage() {
 						id='description'
 						rows={4}
 						required
-						className='mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
+						className='appearance-none relative block w-full px-3 py-2 border border-black placeholder-white text-white rounded focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-md'
 					/>
 				</div>
 
@@ -108,7 +106,7 @@ export default function NewEventPage() {
 						name='date'
 						id='date'
 						required
-						className='mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
+						className='appearance-none relative block w-full px-3 py-2 border border-black placeholder-white text-white rounded focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-md'
 					/>
 				</div>
 
@@ -124,7 +122,7 @@ export default function NewEventPage() {
 						name='venue'
 						id='venue'
 						required
-						className='mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
+						className='appearance-none relative block w-full px-3 py-2 border border-black placeholder-white text-white rounded focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-md'
 					/>
 				</div>
 
@@ -140,7 +138,7 @@ export default function NewEventPage() {
 						name='organization'
 						id='organization'
 						required
-						className='mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
+						className='appearance-none relative block w-full px-3 py-2 border border-black placeholder-white text-white rounded focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-md'
 					/>
 				</div>
 
@@ -159,7 +157,7 @@ export default function NewEventPage() {
 					<button
 						type='submit'
 						disabled={isSubmitting}
-						className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
+						className='group relative flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-black hover:bg-black/80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black'
 					>
 						{isSubmitting ? 'Creating...' : 'Create Event'}
 					</button>
