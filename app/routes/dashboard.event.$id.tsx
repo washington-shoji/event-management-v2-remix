@@ -1,23 +1,67 @@
-import { ActionFunctionArgs } from '@remix-run/node';
+import { ActionFunctionArgs, json } from '@remix-run/node';
 import { useLoaderData, Form, Link } from '@remix-run/react';
-import { requireAuth } from '~/utils/auth.server';
+import { requireAuth, getToken } from '~/utils/auth.server';
 
-interface Event {
-	id: string;
-	title: string;
-	description: string;
-	date: string;
-	venue: string;
-	organization: string;
-	status: string;
-	tickets: Ticket[];
-}
-
-interface Ticket {
-	id: string;
-	name: string;
-	price: number;
-	quantity: number;
+// Types for the orchestration API response
+interface EventDetailsResponse {
+	event: {
+		id: string;
+		title: string;
+		description: string;
+		registrationOpenDate: string;
+		registrationCloseDate: string;
+		eventDate: string;
+		venueId: string;
+		organizerId: string;
+		organizationId: string | null;
+		status: string;
+		createdAt: string;
+		updatedAt: string;
+	};
+	venue?: {
+		id: string;
+		name: string;
+		description: string;
+		capacity: number;
+		addressId: string | null;
+		status: string;
+		createdAt: string;
+		updatedAt: string;
+	};
+	address?: {
+		id: string;
+		unit: string | null;
+		street: string;
+		city: string;
+		state: string;
+		country: string;
+		postalCode: string;
+		createdAt: string;
+		updatedAt: string;
+	};
+	organization?: {
+		id: string;
+		name: string;
+		description: string;
+		type: string;
+		status: string;
+		addressId: string | null;
+		createdAt: string;
+		updatedAt: string;
+	};
+	tickets?: Array<{
+		id: string;
+		name: string;
+		description: string;
+		price: string;
+		purchasePrice: string;
+		quantity: number;
+		availableQuantity: number;
+		promoCode: string;
+		createdAt: string;
+		updatedAt: string;
+	}>;
+	attendeeCount?: number;
 }
 
 export async function loader({
@@ -28,33 +72,35 @@ export async function loader({
 	params: { id: string };
 }) {
 	await requireAuth(request);
+	const token = await getToken(request);
 
-	// TODO: Fetch event details from API
-	const event: Event = {
-		id: params.id,
-		title: 'Sample Event 1',
-		description: 'This is a sample event description',
-		date: '2024-04-01',
-		venue: 'Sample Venue 1',
-		organization: 'Sample Organization 1',
-		status: 'upcoming',
-		tickets: [
-			{
-				id: '1',
-				name: 'General Admission',
-				price: 50,
-				quantity: 100,
-			},
-			{
-				id: '2',
-				name: 'VIP',
-				price: 100,
-				quantity: 50,
-			},
-		],
-	};
+	try {
+		// Fetch event details from the orchestration API
+		const response = await fetch(`http://localhost:3000/api/events/orchestration/${params.id}/details`, {
+			headers: {
+				'Authorization': `Bearer ${token || ''}`,
+				'Content-Type': 'application/json'
+			}
+		});
 
-	return Response.json({ event });
+		if (!response.ok) {
+			if (response.status === 404) {
+				throw new Response('Event not found', { status: 404 });
+			}
+			throw new Response('Failed to fetch event details', { status: response.status });
+		}
+
+		const eventDetails: EventDetailsResponse = await response.json();
+
+		return json({ eventDetails });
+
+	} catch (error) {
+		console.error('Error fetching event details:', error);
+		if (error instanceof Response) {
+			throw error;
+		}
+		throw new Response('Failed to fetch event details', { status: 500 });
+	}
 }
 
 export async function action({ request }: ActionFunctionArgs) {
@@ -64,19 +110,69 @@ export async function action({ request }: ActionFunctionArgs) {
 
 	if (intent === 'delete') {
 		// TODO: Delete event from API
-		return Response.json({ success: true });
+		return json({ success: true });
 	}
 
-	return Response.json({ success: false });
+	return json({ success: false });
 }
 
 export default function EventDetailPage() {
-	const { event } = useLoaderData<typeof loader>();
+	const { eventDetails } = useLoaderData<typeof loader>();
+	const { event, venue, address, organization, tickets, attendeeCount } = eventDetails;
+
+	// Format date for display
+	const formatDate = (dateString: string) => {
+		try {
+			const date = new Date(dateString);
+			return date.toLocaleDateString('en-US', {
+				year: 'numeric',
+				month: 'long',
+				day: 'numeric',
+				hour: '2-digit',
+				minute: '2-digit'
+			});
+		} catch (error) {
+			return dateString;
+		}
+	};
+
+	// Format address for display
+	const formatAddress = () => {
+		if (!address) return 'Address not available';
+		
+		const parts = [
+			address.unit,
+			address.street,
+			address.city,
+			address.state,
+			address.postalCode,
+			address.country
+		].filter(Boolean);
+		
+		return parts.join(', ');
+	};
+
+	// Get status badge styling
+	const getStatusBadge = (status: string) => {
+		const statusConfig = {
+			'pending': 'bg-yellow-100 text-yellow-800',
+			'published': 'bg-green-100 text-green-800',
+			'upcoming': 'bg-blue-100 text-blue-800',
+			'active': 'bg-green-100 text-green-800',
+			'cancelled': 'bg-red-100 text-red-800',
+			'completed': 'bg-gray-100 text-gray-800'
+		};
+		
+		return statusConfig[status as keyof typeof statusConfig] || 'bg-gray-100 text-gray-800';
+	};
 
 	return (
 		<div className='space-y-6'>
 			<div className='flex justify-between items-center'>
-				<h1 className='text-2xl font-bold text-gray-900'>{event.title}</h1>
+				<div>
+					<h1 className='text-3xl font-bold text-gray-900'>{event.title}</h1>
+					<p className='text-gray-500 mt-1'>Event ID: {event.id}</p>
+				</div>
 				<div className='flex space-x-4'>
 					<Link
 						to={`/dashboard/event-edit/${event.id}`}
@@ -96,6 +192,19 @@ export default function EventDetailPage() {
 				</div>
 			</div>
 
+			{/* Event Status Badge */}
+			<div className='flex items-center space-x-2'>
+				<span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusBadge(event.status)}`}>
+					{event.status}
+				</span>
+				{attendeeCount !== undefined && (
+					<span className='text-sm text-gray-500'>
+						• {attendeeCount} attendees
+					</span>
+				)}
+			</div>
+
+			{/* Event Information */}
 			<div className='bg-white shadow overflow-hidden sm:rounded-lg'>
 				<div className='px-4 py-5 sm:px-6'>
 					<h3 className='text-lg leading-6 font-medium text-gray-900'>
@@ -111,76 +220,205 @@ export default function EventDetailPage() {
 							</dd>
 						</div>
 						<div className='bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6'>
-							<dt className='text-sm font-medium text-gray-500'>Date</dt>
+							<dt className='text-sm font-medium text-gray-500'>Event Date</dt>
 							<dd className='mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2'>
-								{event.date}
+								{formatDate(event.eventDate)}
 							</dd>
 						</div>
 						<div className='bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6'>
-							<dt className='text-sm font-medium text-gray-500'>Venue</dt>
+							<dt className='text-sm font-medium text-gray-500'>Registration Opens</dt>
 							<dd className='mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2'>
-								{event.venue}
+								{formatDate(event.registrationOpenDate)}
 							</dd>
 						</div>
 						<div className='bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6'>
-							<dt className='text-sm font-medium text-gray-500'>
-								Organization
-							</dt>
+							<dt className='text-sm font-medium text-gray-500'>Registration Closes</dt>
 							<dd className='mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2'>
-								{event.organization}
+								{formatDate(event.registrationCloseDate)}
 							</dd>
 						</div>
 						<div className='bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6'>
-							<dt className='text-sm font-medium text-gray-500'>Status</dt>
+							<dt className='text-sm font-medium text-gray-500'>Created</dt>
 							<dd className='mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2'>
-								<span
-									className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-										event.status === 'upcoming'
-											? 'bg-green-100 text-green-800'
-											: 'bg-gray-100 text-gray-800'
-									}`}
-								>
-									{event.status}
-								</span>
+								{formatDate(event.createdAt)}
+							</dd>
+						</div>
+						<div className='bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6'>
+							<dt className='text-sm font-medium text-gray-500'>Last Updated</dt>
+							<dd className='mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2'>
+								{formatDate(event.updatedAt)}
 							</dd>
 						</div>
 					</dl>
 				</div>
 			</div>
 
-			<div className='bg-white shadow overflow-hidden sm:rounded-lg'>
-				<div className='px-4 py-5 sm:px-6'>
-					<h3 className='text-lg leading-6 font-medium text-gray-900'>
-						Available Tickets
-					</h3>
-				</div>
-				<div className='border-t border-gray-200'>
-					<ul className='divide-y divide-gray-200'>
-						{event.tickets.map((ticket: Ticket) => (
-							<li key={ticket.id} className='px-4 py-4 sm:px-6'>
-								<div className='flex items-center justify-between'>
-									<div>
-										<p className='text-sm font-medium text-indigo-600 truncate'>
-											{ticket.name}
-										</p>
-										<p className='text-sm text-gray-500'>
-											${ticket.price} - {ticket.quantity} available
-										</p>
-									</div>
-									<div className='ml-2 flex-shrink-0 flex'>
-										<button
-											type='button'
-											className='inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700'
-										>
-											Purchase
-										</button>
-									</div>
+			{/* Venue Information */}
+			{venue && (
+				<div className='bg-white shadow overflow-hidden sm:rounded-lg'>
+					<div className='px-4 py-5 sm:px-6'>
+						<h3 className='text-lg leading-6 font-medium text-gray-900'>
+							Venue Information
+						</h3>
+					</div>
+					<div className='border-t border-gray-200'>
+						<dl>
+							<div className='bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6'>
+								<dt className='text-sm font-medium text-gray-500'>Name</dt>
+								<dd className='mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2'>
+									{venue.name}
+								</dd>
+							</div>
+							{venue.description && (
+								<div className='bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6'>
+									<dt className='text-sm font-medium text-gray-500'>Description</dt>
+									<dd className='mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2'>
+										{venue.description}
+									</dd>
 								</div>
-							</li>
-						))}
-					</ul>
+							)}
+							<div className='bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6'>
+								<dt className='text-sm font-medium text-gray-500'>Capacity</dt>
+								<dd className='mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2'>
+									{venue.capacity.toLocaleString()} people
+								</dd>
+							</div>
+							<div className='bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6'>
+								<dt className='text-sm font-medium text-gray-500'>Status</dt>
+								<dd className='mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2'>
+									<span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadge(venue.status)}`}>
+										{venue.status}
+									</span>
+								</dd>
+							</div>
+							{address && (
+								<div className='bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6'>
+									<dt className='text-sm font-medium text-gray-500'>Address</dt>
+									<dd className='mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2'>
+										{formatAddress()}
+									</dd>
+								</div>
+							)}
+						</dl>
+					</div>
 				</div>
-			</div>
+			)}
+
+			{/* Organization Information */}
+			{organization && (
+				<div className='bg-white shadow overflow-hidden sm:rounded-lg'>
+					<div className='px-4 py-5 sm:px-6'>
+						<h3 className='text-lg leading-6 font-medium text-gray-900'>
+							Organization Information
+						</h3>
+					</div>
+					<div className='border-t border-gray-200'>
+						<dl>
+							<div className='bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6'>
+								<dt className='text-sm font-medium text-gray-500'>Name</dt>
+								<dd className='mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2'>
+									{organization.name}
+								</dd>
+							</div>
+							{organization.description && (
+								<div className='bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6'>
+									<dt className='text-sm font-medium text-gray-500'>Description</dt>
+									<dd className='mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2'>
+										{organization.description}
+									</dd>
+								</div>
+							)}
+							<div className='bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6'>
+								<dt className='text-sm font-medium text-gray-500'>Type</dt>
+								<dd className='mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2'>
+									<span className='capitalize'>{organization.type}</span>
+								</dd>
+							</div>
+							<div className='bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6'>
+								<dt className='text-sm font-medium text-gray-500'>Status</dt>
+								<dd className='mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2'>
+									<span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadge(organization.status)}`}>
+										{organization.status}
+									</span>
+								</dd>
+							</div>
+						</dl>
+					</div>
+				</div>
+			)}
+
+			{/* Tickets Information */}
+			{tickets && tickets.length > 0 && (
+				<div className='bg-white shadow overflow-hidden sm:rounded-lg'>
+					<div className='px-4 py-5 sm:px-6'>
+						<h3 className='text-lg leading-6 font-medium text-gray-900'>
+							Available Tickets
+						</h3>
+					</div>
+					<div className='border-t border-gray-200'>
+						<ul className='divide-y divide-gray-200'>
+							{tickets.map((ticket) => (
+								<li key={ticket.id} className='px-4 py-4 sm:px-6'>
+									<div className='flex items-center justify-between'>
+										<div className='flex-1'>
+											<div className='flex items-center justify-between'>
+												<p className='text-sm font-medium text-indigo-600 truncate'>
+													{ticket.name}
+												</p>
+												<p className='text-sm font-medium text-gray-900'>
+													${parseFloat(ticket.price).toFixed(2)}
+												</p>
+											</div>
+											{ticket.description && (
+												<p className='text-sm text-gray-500 mt-1'>
+													{ticket.description}
+												</p>
+											)}
+											<div className='mt-2 flex items-center space-x-4 text-sm text-gray-500'>
+												<span>Quantity: {ticket.quantity}</span>
+												<span>Available: {ticket.availableQuantity}</span>
+												<span>Promo Code: {ticket.promoCode}</span>
+											</div>
+											{ticket.purchasePrice !== ticket.price && (
+												<p className='text-sm text-green-600 mt-1'>
+													Purchase Price: ${parseFloat(ticket.purchasePrice).toFixed(2)}
+												</p>
+											)}
+										</div>
+										<div className='ml-4 flex-shrink-0 flex'>
+											<button
+												type='button'
+												disabled={ticket.availableQuantity === 0}
+												className={`inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md ${
+													ticket.availableQuantity > 0
+														? 'text-white bg-indigo-600 hover:bg-indigo-700'
+														: 'text-gray-400 bg-gray-100 cursor-not-allowed'
+												}`}
+											>
+												{ticket.availableQuantity > 0 ? 'Purchase' : 'Sold Out'}
+											</button>
+										</div>
+									</div>
+								</li>
+							))}
+						</ul>
+					</div>
+				</div>
+			)}
+
+			{/* No Tickets Message */}
+			{(!tickets || tickets.length === 0) && (
+				<div className='bg-white shadow overflow-hidden sm:rounded-lg'>
+					<div className='px-4 py-5 sm:px-6'>
+						<h3 className='text-lg leading-6 font-medium text-gray-900'>
+							Tickets
+						</h3>
+					</div>
+					<div className='border-t border-gray-200 px-4 py-5 sm:px-6'>
+						<p className='text-sm text-gray-500'>No tickets available for this event.</p>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 }
