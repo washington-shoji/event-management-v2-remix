@@ -6,7 +6,7 @@ import {
 	ScrollRestoration,
 	useLoaderData,
 } from '@remix-run/react';
-import Layout from '~/components/Layout';
+import PublicLayout from '~/components/PublicLayout';
 import DashboardLayout from '~/components/DashboardLayout';
 import { getUserSession } from '~/services/auth.server';
 import './tailwind.css';
@@ -35,9 +35,9 @@ export default function App() {
 						<Outlet />
 					</DashboardLayout>
 				) : (
-					<Layout>
+					<PublicLayout>
 						<Outlet />
-					</Layout>
+					</PublicLayout>
 				)}
 				<ScrollRestoration />
 				<Scripts />
