@@ -217,16 +217,12 @@ export default function DashboardLayout({
 							<Form action='/logout' method='post'>
 								<button
 									type='submit'
-									className='flex items-center space-x-2 text-black hover:bg-gray-100 rounded-lg p-2'
+									className='flex items-center space-x-2 text-red-500 hover:bg-red-300 rounded-lg p-2'
 								>
-									<img
-										src={user?.avatar || 'https://via.placeholder.com/32'}
-										alt={user?.firstName}
-										className='w-8 h-8 rounded-full'
-									/>
-									<span>
-										{user?.firstName} {user?.lastName}
-									</span>
+									<svg className="w-6 h-6 text-red-500 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+										<path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 12H4m12 0-4 4m4-4-4-4m3-4h2a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3h-2"/>
+									</svg>
+									<span>Logout</span>
 								</button>
 							</Form>
 						</div>
