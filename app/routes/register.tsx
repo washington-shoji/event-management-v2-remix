@@ -1,5 +1,5 @@
 import { ActionFunctionArgs, json } from '@remix-run/node';
-import { Form, useActionData, useNavigation } from '@remix-run/react';
+import { Form, Link, useActionData, useNavigation } from '@remix-run/react';
 import { createUser } from '~/services/user.server';
 import { createUserSession } from '~/utils/auth.server';
 import type { CreateUserInput } from '~/types/user';
@@ -14,7 +14,6 @@ export async function action({ request }: ActionFunctionArgs) {
 	const password = formData.get('password');
 	const firstName = formData.get('firstName');
 	const lastName = formData.get('lastName');
-	const phone = formData.get('phone');
 
 	if (!email || typeof email !== 'string') {
 		return json<ActionData>({ error: 'Email is required' }, { status: 400 });
@@ -44,7 +43,6 @@ export async function action({ request }: ActionFunctionArgs) {
 			password: String(password),
 			firstName,
 			lastName,
-			phone: phone ? String(phone) : undefined,
 			role: 'user',
 		};
 
@@ -54,7 +52,7 @@ export async function action({ request }: ActionFunctionArgs) {
 		return json<ActionData>(
 			{
 				error:
-					error instanceof Error ? error.message : 'Failed to create account',
+					error instanceof Error ? error.message : 'Failed to register account',
 			},
 			{ status: 500 }
 		);
@@ -67,96 +65,45 @@ export default function RegisterPage() {
 	const isSubmitting = navigation.state === 'submitting';
 
 	return (
-		<div className='min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8'>
-			<div className='max-w-md w-full space-y-8'>
-				<div>
-					<h2 className='mt-6 text-center text-3xl font-extrabold text-gray-900'>
-						Create your account
-					</h2>
+		<section className="bg-gray-50 dark:bg-gray-900">
+			<div className="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0">
+				<div className="w-full bg-white rounded-lg shadow dark:border md:mt-0 sm:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700">
+					<div className="p-6 space-y-4 md:space-y-6 sm:p-8">
+						<h1 className="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl dark:text-white">
+							Register your account
+						</h1>
+						<Form className="space-y-4 md:space-y-6" method="post">
+							<div>
+								<label htmlFor="firstName" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">First Name</label>
+								<input type="text" name="firstName" id="firstName" className="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Your first name" required/>
+							</div>
+							<div>
+								<label htmlFor="lastName" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Last Name</label>
+								<input type="text" name="lastName" id="lastName" className="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Your last name" required/>
+							</div>
+							<div>
+								<label htmlFor="email" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Your email</label>
+								<input type="email" name="email" id="email" className="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="name@company.com" required/>
+							</div>
+							<div>
+								<label htmlFor="password" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Password</label>
+								<input type="password" name="password" id="password" placeholder="••••••••" className="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" required/>
+							</div>
+
+							{typeof actionData === 'object' && actionData?.error && (
+								<div className='text-black text-sm'>{actionData.error}</div>
+							)}
+
+							<button disabled={isSubmitting} type="submit" className="w-full text-white bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">
+								{isSubmitting ? 'Registering account...' : 'Register'}
+							</button>
+							<p className="text-sm font-light text-gray-500 dark:text-gray-400">
+								Already have an account? <Link to="/login" className="font-medium text-primary-600 hover:underline dark:text-primary-500">Login</Link>
+							</p>
+						</Form>
+					</div>
 				</div>
-				<Form method='post' className='mt-8 space-y-6'>
-					<div className='rounded-md shadow-sm -space-y-px'>
-						<div>
-							<label htmlFor='firstName' className='sr-only'>
-								First Name
-							</label>
-							<input
-								id='firstName'
-								name='firstName'
-								type='text'
-								required
-								className='appearance-none rounded-none relative block w-full px-3 py-2 border border-black placeholder-white text-white rounded-t-md focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-sm'
-								placeholder='First Name'
-							/>
-						</div>
-						<div>
-							<label htmlFor='lastName' className='sr-only'>
-								Last Name
-							</label>
-							<input
-								id='lastName'
-								name='lastName'
-								type='text'
-								required
-								className='appearance-none rounded-none relative block w-full px-3 py-2 border border-black placeholder-white text-white focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-sm'
-								placeholder='Last Name'
-							/>
-						</div>
-						<div>
-							<label htmlFor='email' className='sr-only'>
-								Email address
-							</label>
-							<input
-								id='email'
-								name='email'
-								type='email'
-								required
-								className='appearance-none rounded-none relative block w-full px-3 py-2 border border-black placeholder-white text-white focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-sm'
-								placeholder='Email address'
-							/>
-						</div>
-						<div>
-							<label htmlFor='phone' className='sr-only'>
-								Phone Number
-							</label>
-							<input
-								id='phone'
-								name='phone'
-								type='tel'
-								className='appearance-none rounded-none relative block w-full px-3 py-2 border border-black placeholder-white text-white focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-sm'
-								placeholder='Phone Number (optional)'
-							/>
-						</div>
-						<div>
-							<label htmlFor='password' className='sr-only'>
-								Password
-							</label>
-							<input
-								id='password'
-								name='password'
-								type='password'
-								required
-								className='appearance-none rounded-none relative block w-full px-3 py-2 border border-black placeholder-white text-white rounded-b-md focus:outline-none focus:ring-black focus:border-black focus:z-10 sm:text-sm'
-								placeholder='Password'
-							/>
-						</div>
-					</div>
-
-					{typeof actionData === 'object' && actionData?.error && (
-						<div className='text-black text-sm'>{actionData.error}</div>
-					)}
-
-					<div>
-						<button
-							type='submit'
-							disabled={isSubmitting}
-							className='group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-black hover:bg-black focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black'
-						>
-							{isSubmitting ? 'Creating account...' : 'Create account'}
-						</button>
-					</div>
-				</Form>
 			</div>
-		</div>
+		</section>
 	);
 }
