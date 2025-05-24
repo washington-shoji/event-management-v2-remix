@@ -8,14 +8,20 @@ import {
 } from '@remix-run/react';
 import PublicLayout from '~/components/PublicLayout';
 import DashboardLayout from '~/components/DashboardLayout';
-import { getUserSession } from '~/services/auth.server';
+import { getUserSession } from '~/utils/auth.server';
 import './tailwind.css';
 
 export async function loader({ request }: { request: Request }) {
 	const session = await getUserSession(request);
 	const userId = session.get('userId');
+	const token = session.get('token');
 	const user = session.get('user');
-	return Response.json({ isAuthenticated: !!userId, user });
+	
+	// Check if we have both userId and token for proper authentication
+	const isAuthenticated = !!(userId && token);
+
+	
+	return Response.json({ isAuthenticated, user });
 }
 
 export default function App() {
