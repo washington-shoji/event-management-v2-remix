@@ -1,5 +1,4 @@
 import { createCookieSessionStorage, redirect } from '@remix-run/node';
-import { requireUserId } from '~/services/auth.server';
 
 const sessionStorage = createCookieSessionStorage({
 	cookie: {
@@ -16,7 +15,7 @@ export async function createUserSession(userId: string, token: string) {
 	const session = await sessionStorage.getSession();
 	session.set('userId', userId);
 	session.set('token', token);
-	return redirect('/', {
+	return redirect('/dashboard', {
 		headers: {
 			'Set-Cookie': await sessionStorage.commitSession(session),
 		},
@@ -59,10 +58,7 @@ export async function logout(request: Request) {
 }
 
 export async function requireAdmin(request: Request) {
-	const userId = await requireUserId(request);
-	if (!userId) {
-		throw redirect('/login');
-	}
+	const userId = await requireAuth(request);
 	// TODO: Add admin check logic here
 	return userId;
 }
