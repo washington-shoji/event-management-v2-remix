@@ -1,3 +1,11 @@
+import { LoaderFunctionArgs, redirect } from '@remix-run/node';
+import { requireAuth } from '~/utils/auth.server';
+
+export async function loader({ request }: LoaderFunctionArgs) {
+	await requireAuth(request);
+	return null;
+}
+
 export default function DashboardIndex() {
 	return (
 		<div className='space-y-6'>
