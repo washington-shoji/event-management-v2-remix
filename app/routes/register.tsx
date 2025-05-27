@@ -1,4 +1,4 @@
-import { ActionFunctionArgs, json } from '@remix-run/node';
+import { ActionFunctionArgs, json, redirect } from '@remix-run/node';
 import { Form, Link, useActionData, useNavigation } from '@remix-run/react';
 import { createUser } from '~/services/user.server';
 import { createUserSession } from '~/utils/auth.server';
@@ -47,7 +47,8 @@ export async function action({ request }: ActionFunctionArgs) {
 		};
 
 		const user = await createUser(input);
-		return createUserSession(user.id, user.password);
+		// Redirect to login page after successful registration
+		return redirect('/login');
 	} catch (error) {
 		return json<ActionData>(
 			{
