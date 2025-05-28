@@ -1,6 +1,4 @@
-console.log('Loading user service...');
 import { API_URL } from '~/config';
-console.log('API_URL in user service:', API_URL);
 import type {
 	User,
 	CreateUserInput,
@@ -14,10 +12,6 @@ import type {
 } from '~/types/user';
 
 const getAuthHeaders = (token?: string) => {
-	console.log(
-		'Getting auth headers with token:',
-		token ? 'present' : 'missing'
-	);
 	const headers: HeadersInit = {
 		'Content-Type': 'application/json',
 	};
@@ -28,7 +22,6 @@ const getAuthHeaders = (token?: string) => {
 };
 
 export async function createUser(input: CreateUserInput): Promise<User> {
-	console.log('Creating user with input:', input);
 
 	// Ensure password is a string and trim any whitespace
 	const password = String(input.password).trim();
@@ -47,10 +40,6 @@ export async function createUser(input: CreateUserInput): Promise<User> {
 		addressId: input.addressId,
 	};
 
-	console.log('Request URL:', `${API_URL}/api/users`);
-	console.log('Request headers:', getAuthHeaders());
-	console.log('Request body:', requestBody);
-
 	try {
 		const response = await fetch(`${API_URL}/api/users`, {
 			method: 'POST',
@@ -58,9 +47,7 @@ export async function createUser(input: CreateUserInput): Promise<User> {
 			body: JSON.stringify(requestBody),
 		});
 
-		console.log('Response status:', response.status);
 		const responseData = await response.json();
-		console.log('Response data:', responseData);
 
 		if (!response.ok) {
 			if (response.status === 400) {
