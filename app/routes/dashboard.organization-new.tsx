@@ -1,49 +1,81 @@
 import { json, ActionFunctionArgs, redirect } from '@remix-run/node';
 import { Form, useActionData, useNavigation } from '@remix-run/react';
-import { requireAuth } from '~/utils/auth.server';
+import { requireAuth, getToken } from '~/utils/auth.server';
+import { createOrganization } from '~/services/organization.server';
+import { CreateOrganizationInput, UserRole, OrganizationStatus } from '~/types/organization';
 
 interface ActionData {
 	error?: string;
+	details?: string[];
 }
 
 export async function action({ request }: ActionFunctionArgs) {
-	await requireAuth(request);
+	const userId = await requireAuth(request);
+	const token = await getToken(request);
+
+	if (!token) {
+		throw redirect('/login');
+	}
+
 	const formData = await request.formData();
-	const name = formData.get('name');
-	const description = formData.get('description');
-	const email = formData.get('email');
-	const phone = formData.get('phone');
-	const website = formData.get('website');
+	const name = formData.get('name') as string;
+	const description = formData.get('description') as string;
+	const type = formData.get('type') as UserRole;
+	const status = formData.get('status') as OrganizationStatus;
 
 	if (!name || typeof name !== 'string') {
-		return json<ActionData>({ error: 'Name is required' }, { status: 400 });
+		return json<ActionData>({ 
+			error: 'Name is required',
+			details: ['Organization name is required']
+		}, { status: 400 });
 	}
 
-	if (!description || typeof description !== 'string') {
-		return json<ActionData>(
-			{ error: 'Description is required' },
-			{ status: 400 }
-		);
+	if (name.length < 2) {
+		return json<ActionData>({ 
+			error: 'Name must be at least 2 characters',
+			details: ['Organization name must be at least 2 characters long']
+		}, { status: 400 });
 	}
 
-	if (!email || typeof email !== 'string') {
-		return json<ActionData>({ error: 'Email is required' }, { status: 400 });
+	if (name.length > 255) {
+		return json<ActionData>({ 
+			error: 'Name must be less than 255 characters',
+			details: ['Organization name must be less than 255 characters']
+		}, { status: 400 });
 	}
 
-	if (!phone || typeof phone !== 'string') {
-		return json<ActionData>({ error: 'Phone is required' }, { status: 400 });
+	if (description && description.length > 1024) {
+		return json<ActionData>({ 
+			error: 'Description must be less than 1024 characters',
+			details: ['Organization description must be less than 1024 characters']
+		}, { status: 400 });
 	}
 
-	if (!website || typeof website !== 'string') {
-		return json<ActionData>({ error: 'Website is required' }, { status: 400 });
+	if (!type || !['admin', 'sponsor', 'vendor', 'user'].includes(type)) {
+		return json<ActionData>({ 
+			error: 'Valid organization type is required',
+			details: ['Organization type must be one of: admin, sponsor, vendor, user']
+		}, { status: 400 });
 	}
 
 	try {
-		// TODO: Create organization in API
-		return redirect('/organizations');
+		const organizationData: CreateOrganizationInput = {
+			name: name.trim(),
+			description: description?.trim() || undefined,
+			type,
+			status: status || 'pending',
+			addressId: null
+		};
+
+		await createOrganization(organizationData, token);
+		return redirect('/dashboard/organizations');
 	} catch (error) {
+		console.error('Error creating organization:', error);
 		return json<ActionData>(
-			{ error: 'Failed to create organization' },
+			{ 
+				error: 'Failed to create organization. Please try again.',
+				details: ['An unexpected error occurred while creating the organization']
+			},
 			{ status: 500 }
 		);
 	}
@@ -55,110 +87,112 @@ export default function NewOrganizationPage() {
 	const isSubmitting = navigation.state === 'submitting';
 
 	return (
-		<div className='max-w-2xl mx-auto'>
-			<h1 className='text-2xl font-bold text-gray-900 mb-6'>
+		<div className='max-w-4xl mx-auto p-6'>
+			<h1 className='text-3xl font-bold text-gray-900 mb-8'>
 				Create New Organization
 			</h1>
 
-			<Form method='post' className='space-y-6'>
-				<div>
-					<label
-						htmlFor='name'
-						className='block text-sm font-medium text-gray-700'
-					>
-						Name
-					</label>
-					<input
-						type='text'
-						name='name'
-						id='name'
-						required
-						className='mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
-					/>
+			<Form method='post' className='space-y-8'>
+				{/* Basic Organization Information */}
+				<div className='bg-white p-6 rounded-lg shadow'>
+					<h2 className='text-xl font-semibold text-gray-900 mb-4'>Organization Details</h2>
+					<div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+						<div>
+							<label htmlFor='name' className='block text-sm font-medium text-gray-700 mb-2'>
+								Organization Name *
+							</label>
+							<input
+								type='text'
+								name='name'
+								id='name'
+								required
+								minLength={2}
+								maxLength={255}
+								placeholder='Enter organization name'
+								className='w-full px-3 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+							/>
+						</div>
+
+						<div>
+							<label htmlFor='type' className='block text-sm font-medium text-gray-700 mb-2'>
+								Organization Type *
+							</label>
+							<select
+								name='type'
+								id='type'
+								required
+								className='w-full px-3 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+							>
+								<option value=''>Select organization type</option>
+								<option value='admin'>Admin</option>
+								<option value='sponsor'>Sponsor</option>
+								<option value='vendor'>Vendor</option>
+								<option value='user'>User</option>
+							</select>
+						</div>
+
+						<div>
+							<label htmlFor='status' className='block text-sm font-medium text-gray-700 mb-2'>
+								Initial Status
+							</label>
+							<select
+								name='status'
+								id='status'
+								className='w-full px-3 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+							>
+								<option value='pending'>Pending</option>
+								<option value='active'>Active</option>
+								<option value='inactive'>Inactive</option>
+								<option value='suspended'>Suspended</option>
+							</select>
+						</div>
+
+						<div className='md:col-span-2'>
+							<label htmlFor='description' className='block text-sm font-medium text-gray-700 mb-2'>
+								Description
+							</label>
+							<textarea
+								name='description'
+								id='description'
+								rows={4}
+								maxLength={1024}
+								placeholder='Enter organization description (optional)'
+								className='w-full px-3 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+							/>
+						</div>
+					</div>
 				</div>
 
-				<div>
-					<label
-						htmlFor='description'
-						className='block text-sm font-medium text-gray-700'
-					>
-						Description
-					</label>
-					<textarea
-						name='description'
-						id='description'
-						rows={4}
-						required
-						className='mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
-					/>
-				</div>
-
-				<div>
-					<label
-						htmlFor='email'
-						className='block text-sm font-medium text-gray-700'
-					>
-						Email
-					</label>
-					<input
-						type='email'
-						name='email'
-						id='email'
-						required
-						className='mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
-					/>
-				</div>
-
-				<div>
-					<label
-						htmlFor='phone'
-						className='block text-sm font-medium text-gray-700'
-					>
-						Phone
-					</label>
-					<input
-						type='tel'
-						name='phone'
-						id='phone'
-						required
-						className='mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
-					/>
-				</div>
-
-				<div>
-					<label
-						htmlFor='website'
-						className='block text-sm font-medium text-gray-700'
-					>
-						Website
-					</label>
-					<input
-						type='url'
-						name='website'
-						id='website'
-						required
-						className='mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
-					/>
-				</div>
-
+				{/* Error Display */}
 				{actionData?.error && (
-					<div className='text-red-500 text-sm'>{actionData.error}</div>
+					<div className='bg-red-50 border border-red-200 rounded-md p-4'>
+						<h3 className='text-red-800 font-medium'>Error</h3>
+						<p className='text-red-700 mt-1'>{actionData.error}</p>
+						{actionData.details && actionData.details.length > 0 && (
+							<ul className='text-red-700 mt-2 list-disc list-inside'>
+								{actionData.details.map((detail: string, index: number) => (
+									<li key={index}>{detail}</li>
+								))}
+							</ul>
+						)}
+					</div>
 				)}
 
+				{/* Submit Buttons */}
 				<div className='flex justify-end space-x-4'>
 					<button
 						type='button'
 						onClick={() => window.history.back()}
-						className='inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50'
+						className='px-6 py-2 border border-gray-300 text-gray-700 bg-white rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
 					>
 						Cancel
 					</button>
 					<button
 						type='submit'
 						disabled={isSubmitting}
-						className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
+						className='px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed'
 					>
-						{isSubmitting ? 'Creating...' : 'Create Organization'}
+						{isSubmitting ? 'Creating Organization...' : 'Create Organization'}
 					</button>
 				</div>
 			</Form>
