@@ -10,6 +10,13 @@ function getAuthHeaders(token: string) {
   };
 }
 
+// Helper function to get auth headers for DELETE requests (no Content-Type)
+function getAuthHeadersForDelete(token: string) {
+  return {
+    'Authorization': `Bearer ${token}`
+  };
+}
+
 // Helper function to handle API responses
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
@@ -71,7 +78,7 @@ export async function updateOrganization(id: string, data: UpdateOrganizationInp
 export async function deleteOrganization(id: string, token: string): Promise<Organization> {
   const response = await fetch(`${API_BASE_URL}/api/organizations/${id}`, {
     method: 'DELETE',
-    headers: getAuthHeaders(token)
+    headers: getAuthHeadersForDelete(token)
   });
 
   return handleResponse<Organization>(response);
