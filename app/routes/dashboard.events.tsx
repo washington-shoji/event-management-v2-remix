@@ -1,43 +1,16 @@
 import { useLoaderData, useSearchParams, Link } from '@remix-run/react';
 import { json } from '@remix-run/node';
-import { requireAuth, getToken } from '~/utils/auth.server';
-import { ApiEvent } from '~/types/event';
+import { requireAuth } from '~/utils/auth.server';
+import { getEventsByUser } from '~/services/event.server';
+import type { ApiEvent } from '~/types/event';
 
 export async function loader({ request }: { request: Request }) {
-	await requireAuth(request);
-	const token = await getToken(request);
+	const userId = await requireAuth(request);
 
 	try {
-		// Fetch events from the API
-		const response = await fetch('http://localhost:3000/api/events', {
-			headers: {
-				'Authorization': `Bearer ${token || ''}`,
-				'Content-Type': 'application/json'
-			}
-		});
-
-		if (!response.ok) {
-			console.error('Failed to fetch events:', response.status, response.statusText);
-			// Return empty events array if API fails
-			return json({ events: [] });
-		}
-
-		const data = await response.json();
-
-		// Transform API response to match our ApiEvent interface
-		// The API returns events as an array directly, not nested under 'events'
-		const events: ApiEvent[] = (Array.isArray(data) ? data : data.events || []).map((event: any) => ({
-			id: event.id,
-			title: event.title,
-			description: event.description,
-			date: event.eventDate || event.date,
-			venue: event.venue?.name || event.venue || 'Unknown Venue',
-			organization: event.organization?.name || event.organization || 'Unknown Organization',
-			status: event.status || 'upcoming'
-		}));
-
+		// Fetch events created by the current user
+		const events = await getEventsByUser(request, userId);
 		return json({ events });
-
 	} catch (error) {
 		console.error('Error fetching events:', error);
 		// Return empty events array on error
@@ -73,7 +46,7 @@ export default function EventsPage() {
 	return (
 		<div className='space-y-6'>
 			<div className='flex justify-between items-center'>
-				<h1 className='text-2xl font-bold text-gray-900'>Events</h1>
+				<h1 className='text-2xl font-bold text-gray-900'>My Events</h1>
 				<Link
 					to='/dashboard/event-new'
 					className='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700'
