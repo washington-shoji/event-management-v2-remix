@@ -1,8 +1,7 @@
-import { json, ActionFunctionArgs } from '@remix-run/node';
+import { json, ActionFunctionArgs, redirect } from '@remix-run/node';
 import { useLoaderData, Form, Link } from '@remix-run/react';
 import { requireAuth } from '~/utils/auth.server';
 import { getVenueById, deleteVenue, markVenueAsAvailable, markVenueAsUnavailable, markVenueAsMaintenance, markVenueAsClosed } from '~/services/venue.server';
-import type { Venue } from '~/types/venue';
 import { VenueStatus } from '~/types/venue';
 
 export async function loader({
@@ -33,7 +32,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 		switch (intent) {
 			case 'delete':
 				await deleteVenue(request, params.id!);
-				return new Response(null, { status: 204 });
+				return redirect('/dashboard/venues');
 			case 'mark-available':
 				await markVenueAsAvailable(request, params.id!);
 				break;
