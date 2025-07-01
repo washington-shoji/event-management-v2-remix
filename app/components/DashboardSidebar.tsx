@@ -358,26 +358,16 @@ export default function DashboardSidebar({ sidebarOpen, toggleSidebar }: Dashboa
 					className="pt-5 mt-5 space-y-2 border-t border-gray-200 dark:border-gray-700"
 				>
 					<li>
-						<a
-							href="#"
+						<Link
+							to="/dashboard/public-events"
 							className="flex items-center p-2 text-base font-medium text-gray-900 rounded-lg transition duration-75 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-white group"
 						>
-							<svg
-								aria-hidden="true"
-								className="flex-shrink-0 w-6 h-6 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"
-								fill="currentColor"
-								viewBox="0 0 20 20"
-								xmlns="http://www.w3.org/2000/svg"
-							>
-								<path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
-								<path
-									fillRule="evenodd"
-									d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z"
-									clipRule="evenodd"
-								></path>
+							<svg className="flex-shrink-0 w-6 h-6 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"
+							aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 20 20">
+  								<path fillRule="evenodd" d="M18 5.05h1a2 2 0 0 1 2 2v2H3v-2a2 2 0 0 1 2-2h1v-1a1 1 0 1 1 2 0v1h3v-1a1 1 0 1 1 2 0v1h3v-1a1 1 0 1 1 2 0v1Zm-15 6v8a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-8H3ZM11 18a1 1 0 1 0 2 0v-1h1a1 1 0 1 0 0-2h-1v-1a1 1 0 1 0-2 0v1h-1a1 1 0 1 0 0 2h1v1Z" clipRule="evenodd"/>
 							</svg>
-							<span className="ml-3">Docs</span>
-						</a>
+							<span className="ml-3">Public Events</span>
+						</Link>
 					</li>
 					<li>
 						<a
