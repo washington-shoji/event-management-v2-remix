@@ -20,6 +20,38 @@ const getAuthHeadersNoContentType = async (request: Request) => {
   };
 };
 
+export async function getEventsForRegistration(request: Request, userId: string): Promise<ApiEvent[]> {
+  try {
+    const headers = await getAuthHeaders(request);
+    const response = await fetch(`${API_BASE_URL}/api/events/not-by-user/${userId}`, {
+      method: 'GET',
+      headers
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch events for registration: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+
+    // Transform API response to match our ApiEvent interface
+    const events: ApiEvent[] = (Array.isArray(data) ? data : data.events || []).map((event: any) => ({
+      id: event.id,
+      title: event.title,
+      description: event.description,
+      date: event.eventDate || event.date,
+      venue: event.venue?.name || event.venue || 'Unknown Venue',
+      organization: event.organization?.name || event.organization || 'Unknown Organization',
+      status: event.status || 'upcoming'
+    }));
+
+    return events;
+  } catch (error) {
+    console.error('Error fetching events for registration:', error);
+    throw error;
+  }
+}
+
 export async function getEventsByUser(request: Request, userId: string): Promise<ApiEvent[]> {
   try {
     const headers = await getAuthHeaders(request);
