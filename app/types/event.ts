@@ -7,6 +7,19 @@ export interface ApiEvent {
 	venue: string;
 	organization: string;
 	status: string;
+	tickets?: Array<{
+		id: string;
+		name: string;
+		description: string;
+		price: string;
+		purchasePrice: string;
+		quantity: number;
+		availableQuantity: number;
+		promoCode: string;
+		createdAt: string;
+		updatedAt: string;
+	}>;
+	attendeeCount?: number;
 }
 
 // Types for the orchestration API
