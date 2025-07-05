@@ -1,5 +1,5 @@
 import { getToken } from '~/utils/auth.server';
-import type { ApiEvent } from '~/types/event';
+import type { ApiEvent, EventDetailsResponse } from '~/types/event';
 
 const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3000';
 
@@ -119,7 +119,7 @@ export async function getAllEvents(request: Request): Promise<ApiEvent[]> {
 export async function getEventById(request: Request, id: string): Promise<ApiEvent> {
   try {
     const headers = await getAuthHeaders(request);
-    const response = await fetch(`${API_BASE_URL}/api/events/${id}`, {
+    const response = await fetch(`${API_BASE_URL}/api/events/orchestration/${id}/details`, {
       method: 'GET',
       headers
     });
@@ -128,16 +128,19 @@ export async function getEventById(request: Request, id: string): Promise<ApiEve
       throw new Error(`Failed to fetch event: ${response.statusText}`);
     }
 
-    const event = await response.json();
+    const result: EventDetailsResponse = await response.json();
+    const { event, venue, organization, tickets, attendeeCount } = result;
 
     return {
       id: event.id,
       title: event.title,
       description: event.description,
-      date: event.eventDate || event.date,
-      venue: event.venue?.name || event.venue || 'Unknown Venue',
-      organization: event.organization?.name || event.organization || 'Unknown Organization',
-      status: event.status || 'upcoming'
+      date: event.eventDate,
+      venue: venue?.name || 'Unknown Venue',
+      organization: organization?.name || 'Unknown Organization',
+      status: event.status,
+      tickets: tickets || [],
+      attendeeCount: attendeeCount || 0
     };
   } catch (error) {
     console.error('Error fetching event by ID:', error);
