@@ -4,7 +4,6 @@ import { requireAuth } from '~/utils/auth.server';
 import { getEventsForRegistration } from '~/services/event.server';
 import { registerForEvent, getUserEventRegistrations } from '~/services/eventAttendee.server';
 import type { ApiEvent } from '~/types/event';
-import type { EventAttendee } from '~/services/eventAttendee.server';
 
 export async function loader({ request }: { request: Request }) {
 	const userId = await requireAuth(request);
@@ -189,12 +188,6 @@ export default function PublicEventsPage() {
 									<div className='space-y-2 mb-4'>
 										<p className='text-sm text-gray-600'>
 											<span className='font-medium'>Date:</span> {formatDate(event.date)}
-										</p>
-										<p className='text-sm text-gray-600'>
-											<span className='font-medium'>Venue:</span> {event.venue}
-										</p>
-										<p className='text-sm text-gray-600'>
-											<span className='font-medium'>Organization:</span> {event.organization}
 										</p>
 									</div>
 
