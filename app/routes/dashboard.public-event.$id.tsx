@@ -2,9 +2,7 @@ import { json, ActionFunctionArgs } from '@remix-run/node';
 import { useLoaderData, Form, Link } from '@remix-run/react';
 import { requireAuth } from '~/utils/auth.server';
 import { getEventById } from '~/services/event.server';
-import { registerForEvent, getUserEventRegistrations, cancelRegistration } from '~/services/eventAttendee.server';
-import type { ApiEvent } from '~/types/event';
-import type { EventAttendee } from '~/services/eventAttendee.server';
+import { registerForEvent, getUserEventRegistrations, cancelRegistration, getAttendeeTickets, purchaseTickets, cancelTicketPurchase, updateTicketQuantity, type AttendeeTicket } from '~/services/eventAttendee.server';
 
 export async function loader({
 	request,
@@ -23,7 +21,18 @@ export async function loader({
 		const userRegistrations = await getUserEventRegistrations(request, userId);
 		const userRegistration = userRegistrations.find(reg => reg.eventId === params.id);
 		
-		return json({ event, userRegistration });
+		// If user is registered, fetch their tickets
+		let userTickets: AttendeeTicket[] = [];
+		if (userRegistration) {
+			try {
+				userTickets = await getAttendeeTickets(request, userRegistration.id);
+			} catch (error) {
+				console.error('Error fetching user tickets:', error);
+				// Continue without tickets if there's an error
+			}
+		}
+		
+		return json({ event, userRegistration, userTickets });
 	} catch (error) {
 		console.error('Error loading public event:', error);
 		throw new Response('Event not found', { status: 404 });
@@ -44,6 +53,56 @@ export async function action({ request, params }: ActionFunctionArgs) {
 					status: 'registered'
 				});
 				return json({ success: true });
+			case 'purchase_tickets':
+				const attendeeId = formData.get('attendeeId') as string;
+				const ticketId = formData.get('ticketId') as string;
+				const quantity = parseInt(formData.get('quantity') as string);
+				
+				if (!attendeeId || !ticketId || isNaN(quantity)) {
+					return json({ error: 'Missing required ticket purchase information' }, { status: 400 });
+				}
+				
+				// Validate quantity limits
+				if (quantity <= 0) {
+					return json({ error: 'Quantity must be greater than 0' }, { status: 400 });
+				}
+				
+				if (quantity > 20) {
+					return json({ error: 'Maximum 20 tickets allowed per purchase' }, { status: 400 });
+				}
+				
+				await purchaseTickets(request, {
+					attendeeId,
+					ticketId,
+					quantity
+				});
+				return json({ success: true });
+			case 'update_ticket_quantity':
+				const ticketPurchaseId = formData.get('ticketPurchaseId') as string;
+				const newQuantity = parseInt(formData.get('quantity') as string);
+				
+				if (!ticketPurchaseId || isNaN(newQuantity)) {
+					return json({ error: 'Missing required ticket update information' }, { status: 400 });
+				}
+				
+				// Validate quantity limits
+				if (newQuantity <= 0) {
+					return json({ error: 'Quantity must be greater than 0' }, { status: 400 });
+				}
+				
+				if (newQuantity > 20) {
+					return json({ error: 'Maximum 20 tickets allowed per purchase' }, { status: 400 });
+				}
+				
+				await updateTicketQuantity(request, ticketPurchaseId, { quantity: newQuantity });
+				return json({ success: true });
+			case 'cancel_ticket':
+				const ticketIdToCancel = formData.get('ticketPurchaseId') as string;
+				if (!ticketIdToCancel) {
+					return json({ error: 'Ticket purchase ID is required' }, { status: 400 });
+				}
+				await cancelTicketPurchase(request, ticketIdToCancel);
+				return json({ success: true });
 			case 'cancel':
 				const registrationId = formData.get('registrationId') as string;
 				if (!registrationId) {
@@ -61,7 +120,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 }
 
 export default function PublicEventDetailPage() {
-	const { event, userRegistration } = useLoaderData<typeof loader>();
+	const { event, userRegistration, userTickets } = useLoaderData<typeof loader>();
 
 	// Format date for display
 	const formatDate = (dateString: string) => {
@@ -139,9 +198,140 @@ export default function PublicEventDetailPage() {
 								{event.organization}
 							</dd>
 						</div>
+						{event.attendeeCount !== undefined && (
+							<div className='bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6'>
+								<dt className='text-sm font-medium text-gray-500'>Registered Attendees</dt>
+								<dd className='mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2'>
+									{event.attendeeCount} people
+								</dd>
+							</div>
+						)}
 					</dl>
 				</div>
 			</div>
+
+			{/* Tickets Section */}
+			{event.tickets && event.tickets.length > 0 && (
+				<div className='bg-white shadow overflow-hidden sm:rounded-lg border border-gray-200'>
+					<div className='px-4 py-5 sm:px-6'>
+						<h3 className='text-lg leading-6 font-medium text-gray-900'>
+							Available Tickets
+						</h3>
+					</div>
+					<div className='border-t border-gray-200'>
+						<div className='px-4 py-5 sm:px-6'>
+							<div className='space-y-4'>
+								{event.tickets.map((ticket) => {
+									// Find if user has purchased this ticket type
+									const userTicket = userTickets.find(ut => ut.ticketId === ticket.id);
+									
+									return (
+										<div key={ticket.id} className='border border-gray-200 rounded-lg p-4'>
+											<div className='flex justify-between items-start'>
+												<div className='flex-1'>
+													<h4 className='text-lg font-medium text-gray-900'>{ticket.name}</h4>
+													{ticket.description && (
+														<p className='text-sm text-gray-600 mt-1'>{ticket.description}</p>
+													)}
+													<div className='mt-2 flex items-center space-x-4 text-sm text-gray-500'>
+														<span>Price: ${ticket.price}</span>
+														<span>Available: {ticket.availableQuantity} of {ticket.quantity}</span>
+														<span className='text-blue-600'>Max 20 tickets per purchase</span>
+														{ticket.promoCode && (
+															<span>Promo Code: {ticket.promoCode}</span>
+														)}
+													</div>
+													{userTicket && (
+														<div className='mt-2 p-2 bg-green-50 border border-green-200 rounded'>
+															<p className='text-sm text-green-800'>
+																✓ You have purchased {userTicket.quantity} ticket(s)
+															</p>
+														</div>
+													)}
+												</div>
+												<div className='ml-4'>
+													<span className='text-lg font-bold text-gray-900'>${ticket.price}</span>
+													{ticket.availableQuantity > 0 ? (
+														<span className='block text-sm text-green-600'>Available</span>
+													) : (
+														<span className='block text-sm text-red-600'>Sold Out</span>
+													)}
+												</div>
+											</div>
+											
+											{/* Ticket Purchase/Management Actions */}
+											{isRegistered && ticket.availableQuantity > 0 && (
+												<div className='mt-4 pt-4 border-t border-gray-200'>
+													{userTicket ? (
+														<div className='flex items-center space-x-4'>
+															<span className='text-sm text-gray-600'>
+																Quantity: {userTicket.quantity}
+															</span>
+															<Form method='post' className='flex items-center space-x-2'>
+																<input type='hidden' name='intent' value='update_ticket_quantity' />
+																<input type='hidden' name='ticketPurchaseId' value={userTicket.id} />
+																<input
+																	type='number'
+																	name='quantity'
+																	min='1'
+																	max={Math.min(ticket.availableQuantity + userTicket.quantity, 20)}
+																	defaultValue={userTicket.quantity}
+																	className='px-3 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+																/>
+																<button
+																	type='submit'
+																	className='px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700'
+																>
+																	Update
+																</button>
+															</Form>
+															<Form method='post' className='inline'>
+																<input type='hidden' name='intent' value='cancel_ticket' />
+																<input type='hidden' name='ticketPurchaseId' value={userTicket.id} />
+																<button
+																	type='submit'
+																	className='px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700'
+																	onClick={(e) => {
+																		if (!confirm('Are you sure you want to cancel this ticket purchase?')) {
+																			e.preventDefault();
+																		}
+																	}}
+																>
+																	Cancel
+																</button>
+															</Form>
+														</div>
+													) : (
+														<Form method='post' className='flex items-center space-x-2'>
+															<input type='hidden' name='intent' value='purchase_tickets' />
+															<input type='hidden' name='attendeeId' value={userRegistration?.id} />
+															<input type='hidden' name='ticketId' value={ticket.id} />
+															<input
+																type='number'
+																name='quantity'
+																min='1'
+																max={Math.min(ticket.availableQuantity, 20)}
+																defaultValue='1'
+																className='w-1/2 sm:w-3/12 px-3 py-2 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
+															/>
+															<button
+																type='submit'
+																className='px-4 py-2 text-sm bg-green-600 text-white rounded hover:bg-green-700'
+															>
+																Purchase Tickets
+															</button>
+														</Form>
+													)}
+												</div>
+											)}
+										</div>
+									);
+								})}
+							</div>
+						</div>
+					</div>
+				</div>
+			)}
 
 			{/* Registration Section */}
 			<div className='bg-white shadow overflow-hidden sm:rounded-lg border border-gray-200'>
