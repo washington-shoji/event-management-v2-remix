@@ -365,12 +365,12 @@ export default function EventDetailPage() {
 												<p className='text-sm font-medium text-indigo-600 truncate'>
 													{ticket.name}
 												</p>
-												<p className='text-sm font-medium text-gray-900'>
+												<p className='text-sm font-medium text-indigo-600'>
 													${parseFloat(ticket.price).toFixed(2)}
 												</p>
 											</div>
 											{ticket.description && (
-												<p className='text-sm text-gray-500 mt-1'>
+												<p className='w-full sm:w-1/2 text-sm text-gray-500 mt-1'>
 													{ticket.description}
 												</p>
 											)}
@@ -384,19 +384,6 @@ export default function EventDetailPage() {
 													Purchase Price: ${parseFloat(ticket.purchasePrice).toFixed(2)}
 												</p>
 											)}
-										</div>
-										<div className='ml-4 flex-shrink-0 flex'>
-											<button
-												type='button'
-												disabled={ticket.availableQuantity === 0}
-												className={`inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md ${
-													ticket.availableQuantity > 0
-														? 'text-white bg-indigo-600 hover:bg-indigo-700'
-														: 'text-gray-400 bg-gray-100 cursor-not-allowed'
-												}`}
-											>
-												{ticket.availableQuantity > 0 ? 'Purchase' : 'Sold Out'}
-											</button>
 										</div>
 									</div>
 								</li>
