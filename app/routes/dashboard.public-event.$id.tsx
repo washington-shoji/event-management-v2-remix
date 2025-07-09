@@ -231,7 +231,7 @@ export default function PublicEventDetailPage() {
 												<div className='flex-1'>
 													<h4 className='text-lg font-medium text-gray-900'>{ticket.name}</h4>
 													{ticket.description && (
-														<p className='text-sm text-gray-600 mt-1'>{ticket.description}</p>
+														<p className='w-full sm:w-1/2 text-sm text-gray-600 mt-1'>{ticket.description}</p>
 													)}
 													<div className='mt-2 flex items-center space-x-4 text-sm text-gray-500'>
 														<span>Price: ${ticket.price}</span>
